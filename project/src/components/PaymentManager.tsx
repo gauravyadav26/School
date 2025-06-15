@@ -7,15 +7,23 @@ import { ArrowLeft, Calendar, DollarSign, Check, Clock, AlertTriangle } from 'lu
 interface Props {
   student: Student;
   onBack: () => void;
-  onPaymentsChange: () => void;
 }
 
-export const PaymentManager: React.FC<Props> = ({ student, onBack, onPaymentsChange }) => {
+export const PaymentManager: React.FC<Props> = ({ student, onBack }) => {
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [includeBookCharges, setIncludeBookCharges] = useState(false);
   const [includeDressCharges, setIncludeDressCharges] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
-  const payments = getPayments();
+  React.useEffect(() => {
+    const loadPayments = async () => {
+      const allPayments = await getPayments();
+      setPayments(allPayments);
+    };
+    loadPayments();
+  }, []);
+
   const studentPayments = payments.filter(p => p.studentId === student.id);
   const requiredMonths = getMonthsSince(student.startingMonth);
   
@@ -48,29 +56,39 @@ export const PaymentManager: React.FC<Props> = ({ student, onBack, onPaymentsCha
     );
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (selectedMonths.length === 0) return;
 
-    const newPayments = selectedMonths.map(month => ({
-      id: generateId(),
-      studentId: student.id,
-      studentName: student.name,
-      month,
-      monthlyFee: student.monthlyFee,
-      bookCharges: includeBookCharges ? student.bookCharges : 0,
-      dressCharges: includeDressCharges ? student.dressCharges : 0,
-      totalAmount: student.monthlyFee + (includeBookCharges ? student.bookCharges : 0) + (includeDressCharges ? student.dressCharges : 0),
-      paymentDate: new Date().toISOString(),
-      status: 'paid' as const
-    }));
+    setIsProcessing(true);
 
-    const allPayments = [...payments, ...newPayments];
-    savePayments(allPayments);
-    
-    setSelectedMonths([]);
-    setIncludeBookCharges(false);
-    setIncludeDressCharges(false);
-    onPaymentsChange();
+    try {
+      const newPayments = selectedMonths.map(month => ({
+        id: generateId(),
+        studentId: student.id,
+        studentName: student.name,
+        month,
+        monthlyFee: student.monthlyFee,
+        bookCharges: includeBookCharges ? student.bookCharges : 0,
+        dressCharges: includeDressCharges ? student.dressCharges : 0,
+        totalAmount: student.monthlyFee + (includeBookCharges ? student.bookCharges : 0) + (includeDressCharges ? student.dressCharges : 0),
+        paymentDate: new Date().toISOString(),
+        status: 'paid' as const
+      }));
+
+      const allPayments = await getPayments();
+      const updatedPayments = [...allPayments, ...newPayments];
+      await savePayments(updatedPayments);
+      
+      setPayments(updatedPayments);
+      setSelectedMonths([]);
+      setIncludeBookCharges(false);
+      setIncludeDressCharges(false);
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -185,6 +203,7 @@ export const PaymentManager: React.FC<Props> = ({ student, onBack, onPaymentsCha
                   checked={includeBookCharges}
                   onChange={(e) => setIncludeBookCharges(e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  disabled={isProcessing}
                 />
                 <div className="flex-1 flex items-center justify-between">
                   <span>Book Charges</span>
@@ -198,6 +217,7 @@ export const PaymentManager: React.FC<Props> = ({ student, onBack, onPaymentsCha
                   checked={includeDressCharges}
                   onChange={(e) => setIncludeDressCharges(e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  disabled={isProcessing}
                 />
                 <div className="flex-1 flex items-center justify-between">
                   <span>Dress Charges</span>
@@ -235,10 +255,17 @@ export const PaymentManager: React.FC<Props> = ({ student, onBack, onPaymentsCha
             
             <button
               onClick={handlePayment}
-              disabled={selectedMonths.length === 0}
-              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              disabled={selectedMonths.length === 0 || isProcessing}
+              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              Process Payment
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                'Process Payment'
+              )}
             </button>
           </div>
         </div>

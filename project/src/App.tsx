@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Student, Payment } from './types';
-import { getStudents, getPayments } from './utils/storage';
+import { getStudents, getPayments, subscribeToStudents, subscribeToPayments, initializeStorage } from './utils/storage';
 import { Dashboard } from './components/Dashboard';
 import { StudentList } from './components/StudentList';
 import { PaymentManager } from './components/PaymentManager';
-import { LayoutDashboard, Users, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Wifi, WifiOff } from 'lucide-react';
 
 type View = 'dashboard' | 'students' | 'payments';
 
@@ -13,14 +13,56 @@ function App() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-
-  const loadData = () => {
-    setStudents(getStudents());
-    setPayments(getPayments());
-  };
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    let studentsUnsubscribe: (() => void) | undefined;
+    let paymentsUnsubscribe: (() => void) | undefined;
+
+    const initializeApp = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Initialize storage and sync
+        await initializeStorage();
+        
+        // Set up real-time subscriptions
+        studentsUnsubscribe = subscribeToStudents(setStudents);
+        paymentsUnsubscribe = subscribeToPayments(setPayments);
+        
+        // Load initial data if subscriptions don't work
+        const initialStudents = await getStudents();
+        const initialPayments = await getPayments();
+        
+        setStudents(initialStudents);
+        setPayments(initialPayments);
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeApp();
+
+    return () => {
+      if (studentsUnsubscribe) studentsUnsubscribe();
+      if (paymentsUnsubscribe) paymentsUnsubscribe();
+    };
   }, []);
 
   const handleStudentSelect = (student: Student) => {
@@ -38,6 +80,17 @@ function App() {
     { id: 'students', label: 'Students', icon: Users },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading school data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -53,6 +106,25 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Online/Offline Status */}
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                isOnline 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {isOnline ? (
+                  <>
+                    <Wifi className="h-3 w-3" />
+                    Online
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="h-3 w-3" />
+                    Offline
+                  </>
+                )}
+              </div>
+              
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -85,7 +157,6 @@ function App() {
           <StudentList
             students={students}
             payments={payments}
-            onStudentsChange={loadData}
             onPaymentClick={handleStudentSelect}
           />
         )}
@@ -94,7 +165,6 @@ function App() {
           <PaymentManager
             student={selectedStudent}
             onBack={handleBackToStudents}
-            onPaymentsChange={loadData}
           />
         )}
       </main>

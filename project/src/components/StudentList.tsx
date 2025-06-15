@@ -7,11 +7,10 @@ import { getMonthsSince, formatMonth } from '../utils/dateUtils';
 interface Props {
   students: Student[];
   payments: Payment[];
-  onStudentsChange: () => void;
   onPaymentClick: (student: Student) => void;
 }
 
-export const StudentList: React.FC<Props> = ({ students, payments, onStudentsChange, onPaymentClick }) => {
+export const StudentList: React.FC<Props> = ({ students, payments, onPaymentClick }) => {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -133,7 +132,6 @@ export const StudentList: React.FC<Props> = ({ students, payments, onStudentsCha
       {showForm && (
         <StudentForm
           onClose={() => setShowForm(false)}
-          onStudentAdded={onStudentsChange}
         />
       )}
     </div>
