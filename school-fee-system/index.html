@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Fee Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>School Fee Management System</h1>
+            <nav>
+                <button id="addStudentBtn">Add New Student</button>
+                <button id="viewStudentsBtn">View Students</button>
+                <button id="feePaymentBtn">Fee Payment</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Add Student Form -->
+            <section id="addStudentSection" class="section">
+                <h2>Add New Student</h2>
+                <form id="studentForm">
+                    <div class="form-group">
+                        <label for="studentName">Student Name:</label>
+                        <input type="text" id="studentName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="className">Class:</label>
+                        <input type="text" id="className" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fatherName">Father's Name:</label>
+                        <input type="text" id="fatherName" required>
+                    </div>
+                    <button type="submit">Add Student</button>
+                </form>
+            </section>
+
+            <!-- View Students Section -->
+            <section id="viewStudentsSection" class="section hidden">
+                <h2>Student List</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchStudent" placeholder="Search students...">
+                </div>
+                <div id="studentsList"></div>
+            </section>
+
+            <!-- Fee Payment Section -->
+            <section id="feePaymentSection" class="section hidden">
+                <h2>Fee Payment</h2>
+                <form id="feePaymentForm">
+                    <div class="form-group">
+                        <label for="studentSelect">Select Student:</label>
+                        <select id="studentSelect" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMonth">Payment Month:</label>
+                        <input type="month" id="paymentMonth" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tuitionFee">Tuition Fee:</label>
+                        <input type="number" id="tuitionFee" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="booksFee">Books Fee:</label>
+                        <input type="number" id="booksFee" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dressFee">Dress Fee:</label>
+                        <input type="number" id="dressFee" required>
+                    </div>
+                    <button type="submit">Submit Payment</button>
+                </form>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html> 
